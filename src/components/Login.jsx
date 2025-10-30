@@ -114,8 +114,8 @@ function Login() {
             <span>OR</span>
           </div>
 
-          <button 
-            className="auth-btn google-btn" 
+          <button
+            className="auth-btn google-btn"
             onClick={handleGoogleSignIn}
             disabled={loading}
           >
@@ -129,7 +129,7 @@ function Login() {
           </button>
 
           <p className="login-footer">
-            Don't have an account? Contact the Board Administrator to get access.
+            Don't have an account? Contact the STVHA Board Administrator to get access.
           </p>
 
           <div className="admin-link">

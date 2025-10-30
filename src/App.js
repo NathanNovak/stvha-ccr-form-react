@@ -30,11 +30,7 @@ function App() {
             />
             <Route
               path="/admin"
-              element={
-                <ProtectedRoute>
-                  <AdminViewer />
-                </ProtectedRoute>
-              }
+              element={<AdminViewer />}
             />
           </Routes>
         </div>
