@@ -1,6 +1,6 @@
 .form-page {
   min-height: 100vh;
-  background-color: #f0ebf8;
+  background-color: #E9E5DA;
   padding: 20px;
 }
 
@@ -10,7 +10,7 @@
 }
 
 .form-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #54433A;
   border-radius: 8px 8px 0 0;
   padding: 32px 24px;
   color: white;
@@ -89,7 +89,7 @@ input[type="email"]:focus,
 input[type="date"]:focus,
 textarea:focus {
   outline: none;
-  border-bottom-color: #673ab7;
+  border-bottom-color: #7E5135;
   border-bottom-width: 2px;
 }
 
@@ -102,7 +102,7 @@ textarea {
 }
 
 textarea:focus {
-  border: 2px solid #673ab7;
+  border: 2px solid #7E5135;
 }
 
 .radio-group {
@@ -132,7 +132,7 @@ textarea:focus {
 }
 
 .radio-option input[type="radio"]:checked {
-  border-color: #673ab7;
+  border-color: #54433A;
 }
 
 .radio-option input[type="radio"]:checked::after {
@@ -144,7 +144,7 @@ textarea:focus {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: #673ab7;
+  background: #54433A;
 }
 
 .radio-option label {
@@ -154,7 +154,7 @@ textarea:focus {
 }
 
 .submit-btn {
-  background: #673ab7;
+  background: #54433A;
   color: white;
   border: none;
   padding: 12px 24px;
@@ -169,7 +169,7 @@ textarea:focus {
 }
 
 .submit-btn:hover:not(:disabled) {
-  background: #5e35b1;
+  background: #7E5135;
 }
 
 .submit-btn:disabled {
@@ -233,8 +233,8 @@ textarea:focus {
 
 .signout-btn {
   background: transparent;
-  color: #673ab7;
-  border: 1px solid #673ab7;
+  color: #54433A;
+  border: 1px solid #54433A;
   padding: 8px 16px;
   font-size: 12px;
   font-weight: 500;
@@ -246,7 +246,7 @@ textarea:focus {
 }
 
 .signout-btn:hover {
-  background: #673ab7;
+  background: #54433A;
   color: white;
 }
 
@@ -263,12 +263,12 @@ textarea:focus {
 }
 
 .file-upload-area:hover {
-  border-color: #673ab7;
+  border-color: #7E5135;
   background: #f5f3f7;
 }
 
 .file-upload-area.dragover {
-  border-color: #673ab7;
+  border-color: #7E5135;
   background: #ede7f6;
 }
 
@@ -369,13 +369,14 @@ textarea:focus {
 }
 
 .admin-link a {
-  color: #673ab7;
+  color: #0000EE;
   text-decoration: none;
   font-weight: 500;
   font-size: 14px;
 }
 
 .admin-link a:hover {
+  color: #EE0000;
   text-decoration: underline;
 }
 
