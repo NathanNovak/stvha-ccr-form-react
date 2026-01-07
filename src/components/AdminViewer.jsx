@@ -2,8 +2,20 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../firebase';
-import { collection, query, orderBy, getDocs } from 'firebase/firestore';
+import { collection, query, orderBy, getDocs, doc, deleteDoc } from 'firebase/firestore';
+import emailjs from '@emailjs/browser';
+import { generateComplianceReport, formatReportAsHTML, formatReportAsText } from '../utils/reportGenerator';
+import { downloadViolationsDocument } from '../utils/documentGenerator';
 import '../styles/AdminViewer.css';
+
+// EmailJS configuration
+const EMAILJS_PUBLIC_KEY = process.env.REACT_APP_EMAILJS_PUBLIC_KEY || "YOUR_EMAILJS_PUBLIC_KEY";
+const EMAILJS_SERVICE_ID = process.env.REACT_APP_EMAILJS_SERVICE_ID || "YOUR_EMAILJS_SERVICE_ID";
+const EMAILJS_TEMPLATE_ID = process.env.REACT_APP_EMAILJS_TEMPLATE_ID || "YOUR_EMAILJS_TEMPLATE_ID";
+
+if (EMAILJS_PUBLIC_KEY !== "YOUR_EMAILJS_PUBLIC_KEY") {
+  emailjs.init(EMAILJS_PUBLIC_KEY);
+}
 
 function AdminViewer() {
   const { currentUser, signOut } = useAuth();
@@ -33,6 +45,20 @@ function AdminViewer() {
   const [lightboxImages, setLightboxImages] = useState([]);
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [showLightbox, setShowLightbox] = useState(false);
+
+  // Report generation state
+  const [generatingReport, setGeneratingReport] = useState(false);
+  const [reportSuccess, setReportSuccess] = useState(false);
+  const [reportError, setReportError] = useState('');
+
+  // Summary view state
+  const [showSummary, setShowSummary] = useState(false);
+  const [summaryData, setSummaryData] = useState([]);
+
+  // Delete confirmation state
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [reviewToDelete, setReviewToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   // Load reviews on mount
   useEffect(() => {
@@ -168,6 +194,130 @@ function AdminViewer() {
     }
   };
 
+  const handleViewSummary = () => {
+    const reportData = generateComplianceReport(allReviews);
+    setSummaryData(reportData);
+    setShowSummary(true);
+  };
+
+  const handleCloseSummary = () => {
+    setShowSummary(false);
+  };
+
+  const handleDownloadDocument = async () => {
+    if (summaryData.length === 0) {
+      setReportError('No violations data to generate document');
+      setTimeout(() => setReportError(''), 5000);
+      return;
+    }
+
+    try {
+      setGeneratingReport(true);
+      setReportError('');
+
+      await downloadViolationsDocument(summaryData);
+
+      setReportSuccess(true);
+      setTimeout(() => setReportSuccess(false), 5000);
+    } catch (error) {
+      console.error('Error downloading document:', error);
+      setReportError('Error generating document: ' + error.message);
+      setTimeout(() => setReportError(''), 5000);
+    } finally {
+      setGeneratingReport(false);
+    }
+  };
+
+  const handleDeleteClick = (e, review) => {
+    e.stopPropagation();
+    setReviewToDelete(review);
+    setShowDeleteConfirm(true);
+  };
+
+  const handleCancelDelete = () => {
+    setShowDeleteConfirm(false);
+    setReviewToDelete(null);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!reviewToDelete) return;
+
+    setDeleting(true);
+    try {
+      await deleteDoc(doc(db, 'complianceReviews', reviewToDelete.id));
+
+      // Update local state
+      setAllReviews(prev => prev.filter(r => r.id !== reviewToDelete.id));
+
+      // Close any open modals
+      setShowModal(false);
+      setSelectedReview(null);
+      setShowDeleteConfirm(false);
+      setReviewToDelete(null);
+
+      // Show success message briefly
+      setReportSuccess(true);
+      setTimeout(() => setReportSuccess(false), 3000);
+    } catch (error) {
+      console.error('Error deleting review:', error);
+      setReportError('Error deleting review: ' + error.message);
+      setTimeout(() => setReportError(''), 5000);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleGenerateReport = async () => {
+    if (EMAILJS_PUBLIC_KEY === "YOUR_EMAILJS_PUBLIC_KEY") {
+      setReportError('EmailJS is not configured. Please add your EmailJS credentials to .env file.');
+      setTimeout(() => setReportError(''), 5000);
+      return;
+    }
+
+    setGeneratingReport(true);
+    setReportSuccess(false);
+    setReportError('');
+
+    try {
+      // Generate the report data
+      const reportData = generateComplianceReport(allReviews);
+
+      if (reportData.length === 0) {
+        setReportError('No properties with violations found to report.');
+        setTimeout(() => setReportError(''), 5000);
+        setGeneratingReport(false);
+        return;
+      }
+
+      // Format the report as HTML and text
+      const htmlReport = formatReportAsHTML(reportData);
+      const textReport = formatReportAsText(reportData);
+
+      // Send email via EmailJS
+      const emailParams = {
+        to_email: 'board@stvha.org',
+        subject: `CCR Compliance Report - ${new Date().toLocaleDateString()}`,
+        report_html: htmlReport,
+        report_text: textReport,
+        property_count: reportData.length,
+        violation_count: reportData.reduce((sum, p) => sum + p.nonCompliantItems.length, 0),
+        generated_date: new Date().toLocaleString(),
+        generated_by: currentUser.email
+      };
+
+      await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, emailParams);
+
+      setReportSuccess(true);
+      setTimeout(() => setReportSuccess(false), 10000);
+    } catch (error) {
+      console.error('Error generating report:', error);
+      setReportError('Error generating report: ' + error.message);
+      setTimeout(() => setReportError(''), 5000);
+    } finally {
+      setGeneratingReport(false);
+    }
+  };
+
   // Statistics
   const totalReviews = allReviews.length;
   const reviewsWithImages = allReviews.filter(r => r.images && r.images.length > 0).length;
@@ -298,6 +448,41 @@ function AdminViewer() {
           </div>
         </div>
 
+        {/* Report Generation Section */}
+        <div className="report-section">
+          <div className="report-buttons">
+            <button
+              className="report-btn summary-btn"
+              onClick={handleViewSummary}
+              disabled={loading}
+            >
+              📋 View Violations Summary
+            </button>
+            {/*<button*/}
+            {/*  className="report-btn email-btn"*/}
+            {/*  onClick={handleGenerateReport}*/}
+            {/*  disabled={generatingReport || loading}*/}
+            {/*>*/}
+            {/*  {generatingReport ? 'Generating Report...' : '📧 Email Report to Management'}*/}
+            {/*</button>*/}
+          </div>
+          <p className="report-description">
+            View all properties with violations or generate and email a detailed report to the management company
+          </p>
+        </div>
+
+        {/* Report Success Message */}
+        {reportSuccess && (
+          <div className="success-message">
+            Compliance report successfully generated!
+          </div>
+        )}
+
+        {/* Report Error Message */}
+        {reportError && (
+          <div className="error-message">{reportError}</div>
+        )}
+
         {/* Loading State */}
         {loading && (
           <div className="loading">
@@ -373,6 +558,13 @@ function AdminViewer() {
                     </div>
                   )}
                 </div>
+                <button
+                  className="delete-card-btn"
+                  onClick={(e) => handleDeleteClick(e, review)}
+                  title="Delete this review"
+                >
+                  🗑️ Delete
+                </button>
               </div>
             ))}
           </div>
@@ -389,6 +581,13 @@ function AdminViewer() {
                 <p className="modal-subtitle">
                   Reviewed by {selectedReview.reviewTeam || 'Unknown'} on {formatDate(selectedReview.date)}
                 </p>
+                <button
+                  className="delete-modal-btn"
+                  onClick={(e) => handleDeleteClick(e, selectedReview)}
+                  title="Delete this review"
+                >
+                  🗑️ Delete Review
+                </button>
               </div>
 
               <div className="modal-body">
@@ -495,6 +694,238 @@ function AdminViewer() {
                     )}
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Violations Summary Modal */}
+        {showSummary && (
+          <div className="modal summary-modal" onClick={(e) => e.target.className.includes('modal') && handleCloseSummary()}>
+            <div className="modal-content summary-content">
+              <span className="modal-close" onClick={handleCloseSummary}>&times;</span>
+
+              <div className="modal-header">
+                <h2 className="modal-title">Compliance Violations Summary</h2>
+                <p className="modal-subtitle">
+                  Properties with non-compliant items - Generated {new Date().toLocaleDateString()}
+                </p>
+                {summaryData.length > 0 && (
+                  <button
+                    className="download-document-btn"
+                    onClick={handleDownloadDocument}
+                    disabled={generatingReport}
+                  >
+                    {generatingReport ? '📄 Generating...' : '📄 Download Word Document'}
+                  </button>
+                )}
+              </div>
+
+              <div className="modal-body">
+                {summaryData.length === 0 ? (
+                  <div className="no-violations">
+                    <div className="no-violations-icon">✅</div>
+                    <h3>No Violations Found</h3>
+                    <p>All properties are currently in compliance</p>
+                  </div>
+                ) : (
+                  <>
+                    {/* Summary Statistics */}
+                    <div className="summary-stats">
+                      <div className="summary-stat-card">
+                        <div className="summary-stat-value">{summaryData.length}</div>
+                        <div className="summary-stat-label">Properties with Violations</div>
+                      </div>
+                      <div className="summary-stat-card">
+                        <div className="summary-stat-value">
+                          {summaryData.reduce((sum, p) => sum + p.nonCompliantItems.length, 0)}
+                        </div>
+                        <div className="summary-stat-label">Total Violations</div>
+                      </div>
+                      <div className="summary-stat-card">
+                        <div className="summary-stat-value">
+                          {summaryData.filter(p => p.nonCompliantItems.some(i => i.status === 'major')).length}
+                        </div>
+                        <div className="summary-stat-label">With Major Issues</div>
+                      </div>
+                      <div className="summary-stat-card">
+                        <div className="summary-stat-value">
+                          {summaryData.filter(p => p.imageCount > 0).length}
+                        </div>
+                        <div className="summary-stat-label">With Photos</div>
+                      </div>
+                    </div>
+
+                    {/* Properties List */}
+                    <div className="summary-properties">
+                      {summaryData.map((property, index) => {
+                        const majorItems = property.nonCompliantItems.filter(item => item.status === 'major');
+                        const minorItems = property.nonCompliantItems.filter(item => item.status === 'minor');
+
+                        return (
+                          <div key={index} className="summary-property-card">
+                            <div className="summary-property-header">
+                              <h3 className="summary-property-address">
+                                {index + 1}. {property.address}
+                              </h3>
+                              <div className="summary-property-meta">
+                                <span className="summary-meta-item">
+                                  📅 {formatDate(property.reviewDate)}
+                                </span>
+                                <span className="summary-meta-item">
+                                  👥 {property.reviewTeam}
+                                </span>
+                                {property.imageCount > 0 && (
+                                  <span className="summary-meta-item">
+                                    📷 {property.imageCount} photo{property.imageCount > 1 ? 's' : ''}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="summary-property-body">
+                              {/* Compliance Status */}
+                              {property.complianceStatus && (
+                                <div className="summary-status-row">
+                                  <span className="summary-label">Compliance Status:</span>
+                                  <span className={`status-badge status-${property.complianceStatus}`}>
+                                    {formatStatus(property.complianceStatus)}
+                                  </span>
+                                </div>
+                              )}
+
+                              {/* Violations */}
+                              <div className="summary-violations">
+                                <div className="summary-section-title">
+                                  Violations Found ({property.nonCompliantItems.length})
+                                </div>
+
+                                {majorItems.length > 0 && (
+                                  <div className="summary-violation-group">
+                                    <div className="violation-severity major-severity">
+                                      🔴 Major Issues ({majorItems.length})
+                                    </div>
+                                    <ul className="violation-list">
+                                      {majorItems.map((item, idx) => (
+                                        <li key={idx} className="violation-item major">
+                                          {item.item}
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+
+                                {minorItems.length > 0 && (
+                                  <div className="summary-violation-group">
+                                    <div className="violation-severity minor-severity">
+                                      🟡 Minor Issues ({minorItems.length})
+                                    </div>
+                                    <ul className="violation-list">
+                                      {minorItems.map((item, idx) => (
+                                        <li key={idx} className="violation-item minor">
+                                          {item.item}
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Comments */}
+                              {property.comments && (
+                                <div className="summary-comments">
+                                  <div className="summary-section-title">Comments</div>
+                                  <div className="summary-comments-text">{property.comments}</div>
+                                </div>
+                              )}
+
+                              {/* Images */}
+                              {property.images && property.images.length > 0 && (
+                                <div className="summary-images">
+                                  <div className="summary-section-title">Photos ({property.images.length})</div>
+                                  <div className="summary-images-grid">
+                                    {property.images.slice(0, 4).map((img, idx) => (
+                                      <div
+                                        key={idx}
+                                        className="summary-image-thumb"
+                                        onClick={() => openLightbox(property.images, idx)}
+                                      >
+                                        <img src={img} alt={`${property.address} - Photo ${idx + 1}`} />
+                                      </div>
+                                    ))}
+                                    {property.images.length > 4 && (
+                                      <div className="summary-image-more">
+                                        +{property.images.length - 4} more
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Follow-up Information */}
+                              {property.violationNotice && (
+                                <div className="summary-followup">
+                                  <div className="summary-notice-sent">
+                                    ⚠️ Violation Notice Sent
+                                  </div>
+                                  {property.violationNoticeDate && (
+                                    <div className="summary-followup-detail">
+                                      Notice Date: {formatDate(property.violationNoticeDate)}
+                                    </div>
+                                  )}
+                                  {property.complianceDeadline && (
+                                    <div className="summary-followup-detail">
+                                      Compliance Deadline: {formatDate(property.complianceDeadline)}
+                                    </div>
+                                  )}
+                                  {property.reinspectionDate && (
+                                    <div className="summary-followup-detail">
+                                      Re-inspection: {formatDate(property.reinspectionDate)}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Delete Confirmation Modal */}
+        {showDeleteConfirm && reviewToDelete && (
+          <div className="modal delete-confirm-modal">
+            <div className="modal-content delete-confirm-content">
+              <h2 className="delete-confirm-title">⚠️ Confirm Deletion</h2>
+              <p className="delete-confirm-message">
+                Are you sure you want to delete the review for:
+              </p>
+              <p className="delete-confirm-address">
+                {reviewToDelete.propertyAddress || 'Unknown address'}
+              </p>
+              <p className="delete-confirm-warning">
+                This action cannot be undone. All associated data and images will be permanently removed.
+              </p>
+              <div className="delete-confirm-buttons">
+                <button
+                  className="delete-confirm-cancel"
+                  onClick={handleCancelDelete}
+                  disabled={deleting}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="delete-confirm-delete"
+                  onClick={handleConfirmDelete}
+                  disabled={deleting}
+                >
+                  {deleting ? 'Deleting...' : 'Delete Review'}
+                </button>
               </div>
             </div>
           </div>
