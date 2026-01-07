@@ -1,13 +1,13 @@
 {
   "files": {
-    "main.css": "/stvha-ccr-form-react/static/css/main.1f68bd36.css",
-    "main.js": "/stvha-ccr-form-react/static/js/main.f1b6f8b8.js",
+    "main.css": "/stvha-ccr-form-react/static/css/main.c0b642af.css",
+    "main.js": "/stvha-ccr-form-react/static/js/main.1d71ac0d.js",
     "index.html": "/stvha-ccr-form-react/index.html",
-    "main.1f68bd36.css.map": "/stvha-ccr-form-react/static/css/main.1f68bd36.css.map",
-    "main.f1b6f8b8.js.map": "/stvha-ccr-form-react/static/js/main.f1b6f8b8.js.map"
+    "main.c0b642af.css.map": "/stvha-ccr-form-react/static/css/main.c0b642af.css.map",
+    "main.1d71ac0d.js.map": "/stvha-ccr-form-react/static/js/main.1d71ac0d.js.map"
   },
   "entrypoints": [
-    "static/css/main.1f68bd36.css",
-    "static/js/main.f1b6f8b8.js"
+    "static/css/main.c0b642af.css",
+    "static/js/main.1d71ac0d.js"
   ]
 }
