@@ -33,14 +33,18 @@
 
 .user-section {
   text-align: right;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-end;
 }
 
 .user-email {
   font-size: 14px;
   opacity: 0.9;
-  margin-bottom: 8px;
 }
 
+.back-btn,
 .signout-btn {
   background: rgba(255, 255, 255, 0.2);
   color: white;
@@ -55,6 +59,7 @@
   letter-spacing: 0.5px;
 }
 
+.back-btn:hover,
 .signout-btn:hover {
   background: rgba(255, 255, 255, 0.3);
 }

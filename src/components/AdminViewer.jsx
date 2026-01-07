@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../firebase';
 import { collection, query, orderBy, getDocs } from 'firebase/firestore';
@@ -192,6 +192,7 @@ function AdminViewer() {
             <p>View and manage property inspection submissions</p>
           </div>
           <div className="user-section">
+            <button className="back-btn" onClick={() => navigate('/form')}>← Back to Form</button>
             <div className="user-email">{currentUser?.email}</div>
             <button className="signout-btn" onClick={handleSignOut}>Sign Out</button>
           </div>

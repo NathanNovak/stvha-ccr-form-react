@@ -1,9 +1,9 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { 
-  signInWithEmailAndPassword, 
-  signInWithPopup, 
+import {
+  signInWithEmailAndPassword,
+  signInWithPopup,
   signOut as firebaseSignOut,
-  onAuthStateChanged 
+  onAuthStateChanged
 } from 'firebase/auth';
 import { auth, googleProvider } from '../firebase';
 
@@ -21,9 +21,9 @@ export function AuthProvider({ children }) {
     return signInWithEmailAndPassword(auth, email, password);
   }
 
-  function signInWithGoogle() {
-    return signInWithPopup(auth, googleProvider);
-  }
+  // function signInWithGoogle() {
+  //   return signInWithPopup(auth, googleProvider);
+  // }
 
   function signOut() {
     return firebaseSignOut(auth);
@@ -41,7 +41,7 @@ export function AuthProvider({ children }) {
   const value = {
     currentUser,
     signIn,
-    signInWithGoogle,
+    // signInWithGoogle,
     signOut
   };
 
