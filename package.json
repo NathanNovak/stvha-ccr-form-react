@@ -4,7 +4,9 @@
   "private": true,
   "homepage": "https://nathannovak.github.io/stvha-ccr-form-react",
   "dependencies": {
-    "@emailjs/browser": "^3.11.0",
+    "@emailjs/browser": "^3.12.1",
+    "docx": "^9.5.1",
+    "file-saver": "^2.0.5",
     "firebase": "^10.7.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
