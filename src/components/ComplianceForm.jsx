@@ -20,7 +20,7 @@ if (EMAILJS_PUBLIC_KEY !== "YOUR_EMAILJS_PUBLIC_KEY") {
 function ComplianceForm() {
   const { currentUser, signOut } = useAuth();
   const navigate = useNavigate();
-  
+
   // Form state
   const [formData, setFormData] = useState({
     date: '',
@@ -154,7 +154,7 @@ function ComplianceForm() {
 
       try {
         const uploadTask = uploadBytesResumable(storageRef, file);
-        
+
         const url = await new Promise((resolve, reject) => {
           uploadTask.on('state_changed',
             (snapshot) => {
@@ -237,7 +237,7 @@ function ComplianceForm() {
 
       // Show success
       setSuccess(true);
-      
+
       // Reset form
       setFormData({
         date: '',
@@ -277,10 +277,10 @@ function ComplianceForm() {
       });
       setSelectedFiles([]);
       setImagePreviews([]);
-      
+
       // Scroll to top
       window.scrollTo({ top: 0, behavior: 'smooth' });
-      
+
       // Hide success message after 5 seconds
       setTimeout(() => setSuccess(false), 5000);
 
@@ -405,7 +405,7 @@ function ComplianceForm() {
                 Property Address<span className="required">*</span>
               </label>
               <input
-                ref={addressInputRef}
+                // ref={addressInputRef}
                 type="text"
                 name="propertyAddress"
                 value={formData.propertyAddress}
