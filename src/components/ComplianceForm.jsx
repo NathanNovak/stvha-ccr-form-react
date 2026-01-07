@@ -5,6 +5,7 @@ import { db, storage } from '../firebase';
 import { collection, addDoc } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import emailjs from '@emailjs/browser';
+import useGoogleAutocomplete from '../hooks/useGoogleAutocomplete';
 import '../styles/ComplianceForm.css';
 
 // Initialize EmailJS
@@ -302,6 +303,17 @@ function ComplianceForm() {
     }
   };
 
+  // Handle address selection from Google Autocomplete
+  const handleAddressSelected = (address) => {
+    setFormData(prev => ({
+      ...prev,
+      propertyAddress: address
+    }));
+  };
+
+  // Initialize Google Autocomplete
+  const addressInputRef = useGoogleAutocomplete(handleAddressSelected);
+
   const RadioGroup = ({ name, label }) => (
     <div className="question">
       <div className="item-label">{label}</div>
@@ -393,12 +405,14 @@ function ComplianceForm() {
                 Property Address<span className="required">*</span>
               </label>
               <input
+                ref={addressInputRef}
                 type="text"
                 name="propertyAddress"
                 value={formData.propertyAddress}
                 onChange={handleInputChange}
-                placeholder="Enter property address"
+                placeholder="Start typing to search addresses..."
                 required
+                autoComplete="off"
               />
             </div>
           </div>
